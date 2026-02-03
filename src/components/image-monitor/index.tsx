@@ -1,6 +1,6 @@
 function ImageMonitor() {
     return (
-        <div className="w-1/2 h-full">
+        <div>
             Image Monitor
         </div>
     )
