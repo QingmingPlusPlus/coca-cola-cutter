@@ -121,3 +121,11 @@
     @apply bg-background text-foreground;
   }
 }
+
+@utility bg-checkerboard {
+  background-color: #e5e5f7;
+  opacity: 0.8;
+  background-image:  repeating-linear-gradient(45deg, #f4f4f5 25%, transparent 25%, transparent 75%, #f4f4f5 75%, #f4f4f5), repeating-linear-gradient(45deg, #f4f4f5 25%, #e5e5f7 25%, #e5e5f7 75%, #f4f4f5 75%, #f4f4f5);
+  background-position: 0 0, 10px 10px;
+  background-size: 20px 20px;
+}
