@@ -1,5 +1,4 @@
 import { useRef, useState } from "react"
-import { Button } from "../ui/button"
 import { ImageDisplay } from "./image-display"
 
 function ImageMonitor() {

@@ -75,7 +75,8 @@ export function CanvasModule({ imageMeta, slices, onAddSlice }: CanvasModuleProp
         <div className="flex-1 overflow-auto bg-checkerboard relative flex items-center justify-center select-none">
             {/* Checkerboard pattern simulation with Tailwind for now if svg missing, or just a gray background placeholder */}
             {imageMeta ? (
-                <div
+<div
+                    data-testid="canvas-container"
                     ref={containerRef}
                     className="relative shadow-lg cursor-crosshair"
                     onMouseDown={handleMouseDown}
@@ -87,8 +88,9 @@ export function CanvasModule({ imageMeta, slices, onAddSlice }: CanvasModuleProp
                     <img src={imageMeta.url} alt="Source" className="max-w-none pointer-events-none display-block" />
 
                     {/* Slices Overlay */}
-                    {slices.map((slice) => (
+{slices.map((slice) => (
                         <div
+                            data-testid={`slice-${slice.id}`}
                             key={slice.id}
                             className="absolute border-2 border-red-500 bg-red-500/20 pointer-events-none"
                             style={{
