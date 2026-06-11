@@ -1,50 +1,47 @@
-# React + TypeScript + Vite
+# coca-cola-cutter
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+基于 React + TypeScript + Vite 的图片切片工作区。
 
-Currently, two official plugins are available:
+本应用支持上传一张图片，在源图上绘制矩形切片，管理切片坐标，添加辅助线，并预览每个切片区域。
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 当前功能
 
-## Expanding the ESLint configuration
+- 通过控制栏上传本地图片。
+- 在源图上拖拽绘制切片。
+- 添加垂直和水平辅助线。
+- 选中并拖动切片或辅助线。
+- 在切片列表中编辑切片的 `x`、`y`、`w`、`h` 值。
+- 使用上传的图片作为源图预览每个切片。
+- 使用键盘快捷键切换模式：
+  - `v`：垂直辅助线模式
+  - `h`：水平辅助线模式
+  - `s`：选择模式
+  - `Escape`：切片模式
+  - `d`：删除选中项
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+## 技术栈
 
-- Configure the top-level `parserOptions` property like this:
+- React 18
+- TypeScript
+- Vite
+- Tailwind CSS v4
+- shadcn/ui 规范
+- Vitest + Testing Library
 
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
+## 项目记忆
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+面向代理的项目记忆位于：
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
+- `doc/agent-memory-map.md`：文档、规范和技能的路由表。
+- `doc/app-overview.md`：当前应用结构和实现说明。
+- `openspec/specs/image-slicing/spec.md`：长期行为需求。
+- `.agents/skills/image-slicing-development/SKILL.md`：图片切片 UI 变更的可复用工作流。
 
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
+## 命令
+
+```bash
+npm run dev
+npm run build
+npm run lint
+npm run test
 ```
