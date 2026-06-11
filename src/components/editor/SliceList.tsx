@@ -1,4 +1,3 @@
-import React from "react";
 import { Slice } from "../../types";
 
 interface SliceListProps {

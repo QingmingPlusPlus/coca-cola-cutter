@@ -15,7 +15,7 @@ export interface ImageMeta {
     url: string;
 }
 
-export type CanvasMode = 'slice' | 'verticalGuide' | 'horizontalGuide';
+export type CanvasMode = 'slice' | 'verticalGuide' | 'horizontalGuide' | 'select';
 
 export interface GuideLine {
     id: string;

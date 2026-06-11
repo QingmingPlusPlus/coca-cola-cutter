@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { MainLayout } from "./components/layout/MainLayout";
 import { CanvasModule } from "./components/canvas/CanvasModule";
 import { ControlBar } from "./components/controls/ControlBar";
@@ -7,12 +7,17 @@ import { PreviewGallery } from "./components/preview/PreviewGallery";
 import { ImageMeta, Slice, CanvasMode, GuideLine } from "./types";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 
+interface SelectedItem {
+  type: "slice" | "guideLine";
+  id: string;
+}
+
 function App() {
   const [imageMeta, setImageMeta] = useState<ImageMeta | null>(null);
   const [slices, setSlices] = useState<Slice[]>([]);
   const [mode, setMode] = useState<CanvasMode>("slice");
   const [guideLines, setGuideLines] = useState<GuideLine[]>([]);
-  const [selectedGuideId, setSelectedGuideId] = useState<string | null>(null);
+  const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
 
   const handleUpload = (file: File) => {
     const url = URL.createObjectURL(file);
@@ -30,7 +35,7 @@ function App() {
       setSlices([]);
       setMode("slice");
       setGuideLines([]);
-      setSelectedGuideId(null);
+      setSelectedItem(null);
     };
     img.src = url;
   };
@@ -66,8 +71,8 @@ function App() {
 
   const handleSetMode = (newMode: CanvasMode) => {
     setMode(newMode);
-    if (newMode === "slice") {
-      setSelectedGuideId(null);
+    if (newMode !== "select") {
+      setSelectedItem(null);
     }
   };
 
@@ -82,27 +87,41 @@ function App() {
 
   const handleDeleteGuideLine = (id: string) => {
     setGuideLines(guideLines.filter((g) => g.id !== id));
-    setSelectedGuideId(null);
+    setSelectedItem(null);
   };
 
   const handleClearGuideLines = () => {
     setGuideLines([]);
-    setSelectedGuideId(null);
+    setSelectedItem(null);
   };
 
-  const handleSelectGuideLine = (id: string | null) => {
-    setSelectedGuideId(id);
+  const handleSelectItem = (item: SelectedItem | null) => {
+    setSelectedItem(item);
+  };
+
+  const handleDeleteSelected = () => {
+    if (!selectedItem) return;
+    if (selectedItem.type === "slice") {
+      handleDeleteSlice(selectedItem.id);
+    } else {
+      handleDeleteGuideLine(selectedItem.id);
+    }
+    setSelectedItem(null);
+  };
+
+  const handleUpdateSlicePosition = (id: string, x: number, y: number) => {
+    setSlices(slices.map((s) => (s.id === id ? { ...s, x, y } : s)));
+  };
+
+  const handleUpdateGuideLinePosition = (id: string, position: number) => {
+    setGuideLines(guideLines.map((g) => (g.id === id ? { ...g, position } : g)));
   };
 
   useKeyboardShortcuts({
     onSetMode: handleSetMode,
-    onDeleteSelected: () => {
-      if (selectedGuideId) {
-        handleDeleteGuideLine(selectedGuideId);
-      }
-    },
+    onDeleteSelected: handleDeleteSelected,
     currentMode: mode,
-    selectedGuideId: selectedGuideId,
+    selectedItem: selectedItem,
   });
 
   return (
@@ -114,12 +133,14 @@ function App() {
             slices={slices}
             mode={mode}
             guideLines={guideLines}
-            selectedGuideId={selectedGuideId}
+            selectedItem={selectedItem}
             onAddSlice={handleCanvasAddSlice}
             onAddGuideLine={handleAddGuideLine}
             onDeleteGuideLine={handleDeleteGuideLine}
-            onSelectGuideLine={handleSelectGuideLine}
+            onSelectItem={handleSelectItem}
             onClearGuideLines={handleClearGuideLines}
+            onUpdateSlicePosition={handleUpdateSlicePosition}
+            onUpdateGuideLinePosition={handleUpdateGuideLinePosition}
           />
           <ControlBar imageMeta={imageMeta} onUpload={handleUpload} mode={mode} guideLines={guideLines} onClearGuideLines={handleClearGuideLines} />
         </>
@@ -132,7 +153,7 @@ function App() {
             onDelete={handleDeleteSlice}
             onUpdate={handleUpdateSlice}
           />
-          <PreviewGallery slices={slices} imageMeta={imageMeta} />
+          <PreviewGallery slices={slices} imageMeta={imageMeta} mode={mode} selectedItem={selectedItem} />
         </>
       }
     />

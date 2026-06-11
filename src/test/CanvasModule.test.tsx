@@ -288,7 +288,7 @@ describe('CanvasModule', () => {
           guideLines={[
             { id: 'g1', orientation: 'vertical', position: 150 },
           ]}
-          selectedGuideId="g1"
+          selectedItem={{ type: 'guideLine', id: 'g1' }}
         />
       );
       const line = screen.getByTestId('guide-line-g1');

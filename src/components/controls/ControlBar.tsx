@@ -12,6 +12,7 @@ interface ControlBarProps {
 const MODE_LABELS: Record<Exclude<CanvasMode, "slice">, string> = {
     verticalGuide: "Vertical Guide",
     horizontalGuide: "Horizontal Guide",
+    select: "Select",
 };
 
 export function ControlBar({ imageMeta, onUpload, mode, guideLines, onClearGuideLines }: ControlBarProps) {

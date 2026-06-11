@@ -1,24 +1,29 @@
 import { useEffect, useRef } from "react";
 import { CanvasMode } from "../types";
 
+interface SelectedItem {
+  type: "slice" | "guideLine";
+  id: string;
+}
+
 interface UseKeyboardShortcutsOptions {
   onSetMode: (mode: CanvasMode) => void;
   onDeleteSelected: () => void;
   currentMode: CanvasMode;
-  selectedGuideId: string | null;
+  selectedItem: SelectedItem | null;
 }
 
 export function useKeyboardShortcuts({
   onSetMode,
   onDeleteSelected,
   currentMode,
-  selectedGuideId,
+  selectedItem,
 }: UseKeyboardShortcutsOptions) {
   const modeRef = useRef(currentMode);
-  const selectedRef = useRef(selectedGuideId);
+  const selectedRef = useRef(selectedItem);
 
   modeRef.current = currentMode;
-  selectedRef.current = selectedGuideId;
+  selectedRef.current = selectedItem;
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -30,9 +35,11 @@ export function useKeyboardShortcuts({
         onSetMode("verticalGuide");
       } else if (e.key === "h" || e.key === "H") {
         onSetMode("horizontalGuide");
+      } else if (e.key === "s" || e.key === "S") {
+        onSetMode("select");
       } else if (e.key === "Escape") {
         onSetMode("slice");
-      } else if (e.key === "Delete" || e.key === "Backspace") {
+      } else if (e.key === "d" || e.key === "D") {
         if (selectedRef.current) {
           onDeleteSelected();
         }

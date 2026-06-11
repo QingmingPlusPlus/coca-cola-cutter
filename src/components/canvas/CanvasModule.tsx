@@ -1,17 +1,24 @@
 import React from "react";
 import { Slice, ImageMeta, CanvasMode, GuideLine } from "../../types";
 
+interface SelectedItem {
+    type: "slice" | "guideLine";
+    id: string;
+}
+
 interface CanvasModuleProps {
     imageMeta: ImageMeta | null;
     slices: Slice[];
     mode?: CanvasMode;
     guideLines?: GuideLine[];
-    selectedGuideId?: string | null;
+    selectedItem?: SelectedItem | null;
     onAddSlice?: (rect: { x: number, y: number, w: number, h: number }) => void;
     onAddGuideLine?: (guideLine: { orientation: 'vertical' | 'horizontal'; position: number }) => void;
     onDeleteGuideLine?: (id: string) => void;
-    onSelectGuideLine?: (id: string | null) => void;
+    onSelectItem?: (item: SelectedItem | null) => void;
     onClearGuideLines?: () => void;
+    onUpdateSlicePosition?: (id: string, x: number, y: number) => void;
+    onUpdateGuideLinePosition?: (id: string, position: number) => void;
 }
 
 export function CanvasModule({
@@ -19,19 +26,24 @@ export function CanvasModule({
     slices,
     mode = 'slice',
     guideLines = [],
-    selectedGuideId = null,
+    selectedItem = null,
     onAddSlice,
     onAddGuideLine,
-    onSelectGuideLine,
+    onSelectItem,
+    onUpdateSlicePosition,
+    onUpdateGuideLinePosition,
 }: CanvasModuleProps) {
     const [isDrawing, setIsDrawing] = React.useState(false);
     const [startPos, setStartPos] = React.useState<{ x: number, y: number } | null>(null);
     const [currentPos, setCurrentPos] = React.useState<{ x: number, y: number } | null>(null);
     const [guidePreviewPos, setGuidePreviewPos] = React.useState<{ x: number, y: number } | null>(null);
+    const [isDragging, setIsDragging] = React.useState(false);
+    const [dragOffset, setDragOffset] = React.useState<{ x: number, y: number } | null>(null);
 
     const containerRef = React.useRef<HTMLDivElement>(null);
 
     const isGuideMode = mode === 'verticalGuide' || mode === 'horizontalGuide';
+    const isSelectMode = mode === 'select';
 
     const getRelativeCoords = (e: React.MouseEvent) => {
         if (!containerRef.current) return { x: 0, y: 0 };
@@ -63,6 +75,41 @@ export function CanvasModule({
                 orientation: mode === 'verticalGuide' ? 'vertical' : 'horizontal',
                 position,
             });
+        } else if (mode === 'select') {
+            const coords = getRelativeCoords(e);
+            // Check if clicking on selected item for drag
+            if (selectedItem) {
+                if (selectedItem.type === 'slice') {
+                    const slice = slices.find(s => s.id === selectedItem.id);
+                    if (slice) {
+                        const isInside = coords.x >= slice.x && coords.x <= slice.x + slice.w &&
+                            coords.y >= slice.y && coords.y <= slice.y + slice.h;
+                        if (isInside) {
+                            setIsDragging(true);
+                            setDragOffset({ x: coords.x - slice.x, y: coords.y - slice.y });
+                            return;
+                        }
+                    }
+                } else if (selectedItem.type === 'guideLine') {
+                    const guide = guideLines.find(g => g.id === selectedItem.id);
+                    if (guide) {
+                        let isNear = false;
+                        if (guide.orientation === 'vertical') {
+                            isNear = Math.abs(coords.x - guide.position) <= 5;
+                        } else {
+                            isNear = Math.abs(coords.y - guide.position) <= 5;
+                        }
+                        if (isNear) {
+                            setIsDragging(true);
+                            return;
+                        }
+                    }
+                }
+            }
+            // Deselect if clicking on empty space
+            if (onSelectItem) {
+                onSelectItem(null);
+            }
         }
     };
 
@@ -72,6 +119,20 @@ export function CanvasModule({
             setCurrentPos(getRelativeCoords(e));
         } else if (mode === 'verticalGuide' || mode === 'horizontalGuide') {
             setGuidePreviewPos(getRelativeCoords(e));
+        } else if (mode === 'select' && isDragging) {
+            const coords = getRelativeCoords(e);
+            if (selectedItem) {
+                if (selectedItem.type === 'slice' && onUpdateSlicePosition && dragOffset) {
+                    const newX = coords.x - dragOffset.x;
+                    const newY = coords.y - dragOffset.y;
+                    onUpdateSlicePosition(selectedItem.id, Math.round(newX), Math.round(newY));
+                } else if (selectedItem.type === 'guideLine' && onUpdateGuideLinePosition) {
+                    const position = selectedItem.type === 'guideLine' && guideLines.find(g => g.id === selectedItem.id)?.orientation === 'vertical'
+                        ? Math.round(coords.x)
+                        : Math.round(coords.y);
+                    onUpdateGuideLinePosition(selectedItem.id, position);
+                }
+            }
         }
     };
 
@@ -95,6 +156,9 @@ export function CanvasModule({
             }
             setStartPos(null);
             setCurrentPos(null);
+        } else if (mode === 'select') {
+            setIsDragging(false);
+            setDragOffset(null);
         }
     };
 
@@ -121,9 +185,25 @@ export function CanvasModule({
     // Cursor class based on mode
     const cursorClass = mode === 'slice'
         ? 'cursor-crosshair'
+        : mode === 'select'
+        ? 'cursor-default'
         : mode === 'verticalGuide'
         ? 'cursor-col-resize'
         : 'cursor-row-resize';
+
+    const handleSliceClick = (e: React.MouseEvent, slice: Slice) => {
+        if (mode === 'select' && onSelectItem) {
+            e.stopPropagation();
+            onSelectItem({ type: 'slice', id: slice.id });
+        }
+    };
+
+    const handleGuideLineClick = (e: React.MouseEvent, guide: GuideLine) => {
+        if (isSelectMode && onSelectItem) {
+            e.stopPropagation();
+            onSelectItem({ type: 'guideLine', id: guide.id });
+        }
+    };
 
     return (
         <div className="flex-1 overflow-auto bg-checkerboard relative flex items-start justify-start select-none">
@@ -137,8 +217,8 @@ export function CanvasModule({
                     onMouseUp={handleMouseUp}
                     onMouseLeave={handleMouseLeave}
                     onClick={() => {
-                        if (isGuideMode && onSelectGuideLine) {
-                            onSelectGuideLine(null);
+                        if (isGuideMode && onSelectItem) {
+                            onSelectItem(null);
                         }
                     }}
                 >
@@ -150,23 +230,18 @@ export function CanvasModule({
                         <div
                             data-testid={`guide-line-${line.id}`}
                             key={line.id}
-                            className={`absolute ${isGuideMode ? 'pointer-events-auto' : 'pointer-events-none'}`}
+                            className={`absolute ${isGuideMode || isSelectMode ? 'pointer-events-auto' : 'pointer-events-none'}`}
                             style={{
                                 left: line.orientation === 'vertical' ? line.position : 0,
                                 top: line.orientation === 'horizontal' ? line.position : 0,
-                                width: line.orientation === 'vertical' ? (selectedGuideId === line.id ? 3 : 1) : '100%',
-                                height: line.orientation === 'horizontal' ? (selectedGuideId === line.id ? 3 : 1) : '100%',
-                                backgroundColor: selectedGuideId === line.id
+                                width: line.orientation === 'vertical' ? (selectedItem?.type === 'guideLine' && selectedItem?.id === line.id ? 3 : 1) : '100%',
+                                height: line.orientation === 'horizontal' ? (selectedItem?.type === 'guideLine' && selectedItem?.id === line.id ? 3 : 1) : '100%',
+                                backgroundColor: selectedItem?.type === 'guideLine' && selectedItem?.id === line.id
                                     ? 'rgba(0, 255, 230, 1.0)'
                                     : 'rgba(0, 200, 180, 0.8)',
-                                cursor: isGuideMode ? 'pointer' : undefined,
+                                cursor: isSelectMode ? 'pointer' : isGuideMode ? 'pointer' : undefined,
                             }}
-                            onClick={(e) => {
-                                if (isGuideMode && onSelectGuideLine) {
-                                    e.stopPropagation();
-                                    onSelectGuideLine(line.id);
-                                }
-                            }}
+                            onClick={(e) => handleGuideLineClick(e, line)}
                         >
                             <span
                                 className={`absolute text-xs font-mono text-cyan-400 bg-black/70 px-1 py-0.5 rounded pointer-events-none whitespace-nowrap ${
@@ -183,13 +258,14 @@ export function CanvasModule({
                         <div
                             data-testid={`slice-${slice.id}`}
                             key={slice.id}
-                            className="absolute border-2 border-red-500 bg-red-500/20 pointer-events-none"
+                            className={`absolute border-2 ${selectedItem?.type === 'slice' && selectedItem?.id === slice.id ? 'border-yellow-400 bg-yellow-400/30' : 'border-red-500 bg-red-500/20'} ${isSelectMode ? 'pointer-events-auto cursor-pointer' : 'pointer-events-none'}`}
                             style={{
                                 left: slice.x,
                                 top: slice.y,
                                 width: slice.w,
                                 height: slice.h,
                             }}
+                            onClick={(e) => handleSliceClick(e, slice)}
                         />
                     ))}
 
