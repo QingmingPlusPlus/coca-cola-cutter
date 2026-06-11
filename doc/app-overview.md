@@ -4,7 +4,7 @@
 
 ## 应用边界
 
-coca-cola-cutter 当前是纯前端单页工具，没有后端、持久化、导出下载或多图片工作区。用户上传的图片通过 `URL.createObjectURL` 存在浏览器会话内；切片、辅助线和选中项都保存在 React state 中。
+coca-cola-cutter 当前是纯前端单页工具，没有后端或多图片工作区。用户上传的图片通过 data URL 存在浏览器会话内；切片、辅助线和选中项都保存在 React state 中。应用支持将当前图片和切片状态临时保存到 `localStorage`，也支持将图片名和切片数据导出为 JSON 文件。
 
 ## 状态模型
 
@@ -12,11 +12,12 @@ coca-cola-cutter 当前是纯前端单页工具，没有后端、持久化、导
 
 | 状态 | 类型 | 说明 |
 | --- | --- | --- |
-| `imageMeta` | `ImageMeta \| null` | 当前图片文件名、宽高、大小、类型和 object URL |
-| `slices` | `Slice[]` | 切片矩形，坐标和尺寸使用原图像素 |
+| `imageMeta` | `ImageMeta \| null` | 当前图片文件名、宽高、大小、类型和用于渲染的 data URL |
+| `slices` | `Slice[]` | 切片名称和矩形，坐标和尺寸使用原图像素 |
 | `mode` | `CanvasMode` | 当前交互模式：切片、垂直辅助线、水平辅助线、选择 |
 | `guideLines` | `GuideLine[]` | 辅助线集合，按方向保存单一像素位置 |
 | `selectedItem` | `{ type, id } \| null` | 当前选中的切片或辅助线 |
+| `saveStatus` | `string \| null` | 最近一次临时保存操作的提示 |
 
 `src/types.ts` 是这些数据结构的唯一公共类型入口。新增字段或模式时，先改类型，再同步所有消费组件和测试。
 
@@ -24,12 +25,12 @@ coca-cola-cutter 当前是纯前端单页工具，没有后端、持久化、导
 
 | 路径 | 职责 |
 | --- | --- |
-| `src/App.tsx` | 上传图片、重置工作区、创建/删除/更新切片和辅助线、连接快捷键 |
+| `src/App.tsx` | 上传图片、恢复/保存临时工作区、导出 JSON、重置工作区、创建/删除/更新切片和辅助线、连接快捷键 |
 | `src/components/layout/MainLayout.tsx` | 固定全屏双栏布局，左侧画布+控制栏，右侧切片列表+预览 |
 | `src/components/canvas/CanvasModule.tsx` | 根据当前模式处理鼠标事件、坐标换算、绘制切片覆盖层、辅助线和拖拽 |
 | `src/components/controls/ControlBar.tsx` | 文件上传入口、图片元信息、当前非切片模式提示、清空辅助线按钮 |
-| `src/components/editor/SliceList.tsx` | 切片数量、手动新增、删除、编辑 `x/y/w/h` |
-| `src/components/preview/PreviewGallery.tsx` | 用 `background-position` 从原图显示切片预览，并展示快捷键提示 |
+| `src/components/editor/SliceList.tsx` | 切片数量、保存、导出、手动新增、删除、编辑 `x/y/w/h` |
+| `src/components/preview/PreviewGallery.tsx` | 用 `background-position` 从原图显示切片预览，展示并编辑切片名称，并展示快捷键提示 |
 | `src/hooks/useKeyboardShortcuts.ts` | 全局模式快捷键和删除选中项；输入框聚焦时跳过 |
 | `src/components/image-monitor/*` | 独立图片查看/拖放上传原型，当前未接入 `App.tsx` |
 | `src/components/info-monitor/index.tsx` | 占位信息模块，当前未接入 `App.tsx` |
@@ -38,7 +39,7 @@ coca-cola-cutter 当前是纯前端单页工具，没有后端、持久化、导
 
 ### 上传图片
 
-`ControlBar` 选择文件后调用 `App.handleUpload`。`Image` 对象加载完成后写入 `imageMeta`，并清空 `slices`、`guideLines`、`selectedItem`，模式重置为 `slice`。
+`ControlBar` 选择文件后调用 `App.handleUpload`。文件先通过 `FileReader` 转为 data URL，再由 `Image` 对象读取天然宽高。加载完成后写入 `imageMeta`，并清空 `slices`、`guideLines`、`selectedItem`，模式重置为 `slice`。
 
 ### 绘制切片
 
@@ -54,14 +55,21 @@ coca-cola-cutter 当前是纯前端单页工具，没有后端、持久化、导
 
 ### 预览
 
-`PreviewGallery` 遍历 `slices`，以切片宽高作为容器尺寸，用上传图片作为背景图，并通过负的 `x/y` 偏移显示对应局部。当前预览容器最大尺寸限制为 `150px`，大切片缩放策略仍是待完善项。
+`PreviewGallery` 遍历 `slices`，以切片宽高作为容器尺寸，用上传图片作为背景图，并通过负的 `x/y` 偏移显示对应局部。每个预览图下方显示切片名称，可通过编辑按钮进入重命名输入框。当前预览容器最大尺寸限制为 `150px`，大切片缩放策略仍是待完善项。
+
+### 导出 JSON
+
+`SliceList` 的 `Export JSON` 按钮位于 `+ Add Slice` 左侧。导出内容包含当前图片名称 `imageName`，以及所有切片的 `name/x/y/w/h`。辅助线、选中项和当前模式不会写入导出 JSON。
+
+### 临时保存
+
+`SliceList` 的 `Save` 按钮会把当前 `imageMeta` 和所有切片的 `id/name/x/y/w/h` 写入 `localStorage`。辅助线、选中项和当前模式不会保存。应用启动时如果发现已保存的工作区，会恢复图片和切片，并回到 `slice` 模式。
 
 ## 当前限制
 
-- 没有导出、下载或保存切片配置。
 - 没有将切片和辅助线限制在图片边界内。
 - 没有撤销/重做。
-- 上传新图片时未显式 revoke 旧 object URL。
+- 临时保存依赖浏览器 `localStorage` 容量，超大图片可能保存失败。
 - `image-monitor` 和 `info-monitor` 不是主应用流程的一部分。
 
 ## 验证入口

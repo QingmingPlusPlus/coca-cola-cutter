@@ -35,20 +35,28 @@ Slice and guide-line coordinates MUST be represented in source-image pixel coord
 - **WHEN** the drag width or height is 2 pixels or less
 - **THEN** no slice is created
 
-### Requirement: Slices are editable rectangles
+### Requirement: Slices are named editable rectangles
 
-Each slice MUST have a stable `id`, `x`, `y`, `w`, and `h`. Users MUST be able to add a default slice, delete a slice, and edit numeric slice fields from the slice list.
+Each slice MUST have a stable `id`, a user-editable `name`, `x`, `y`, `w`, and `h`. Users MUST be able to add a default slice, delete a slice, edit numeric slice fields from the slice list, and rename a slice from the preview gallery.
 
 #### Scenario: A default slice is added
 
 - **WHEN** the user adds a slice from the slice list
 - **THEN** a new slice is created at `x: 0`, `y: 0`, `w: 64`, `h: 64`
+- **AND** the slice receives a default name
 
 #### Scenario: A slice field is edited
 
 - **WHEN** the user changes `x`, `y`, `w`, or `h`
 - **THEN** only that field changes for the targeted slice
 - **AND** other slices keep their existing values
+
+#### Scenario: A slice is renamed from the preview gallery
+
+- **WHEN** the user clicks the rename control below a preview item
+- **AND** enters a new slice name
+- **THEN** that slice name is updated
+- **AND** the slice coordinates and dimensions are preserved
 
 ### Requirement: Guide lines support vertical and horizontal alignment
 
@@ -104,13 +112,46 @@ Global keyboard shortcuts MUST be ignored while an `INPUT` or `TEXTAREA` element
 
 ### Requirement: Preview uses the same source image and slice coordinates
 
-The preview gallery MUST render one preview per slice using the uploaded image as the source and the slice rectangle as the visible region.
+The preview gallery MUST render one preview per slice using the uploaded image as the source and the slice rectangle as the visible region. The preview gallery MUST show the slice name below each preview.
 
 #### Scenario: Slices exist after image upload
 
 - **WHEN** a slice has `x`, `y`, `w`, and `h`
 - **THEN** the preview item uses `w/h` for its visible frame
 - **AND** offsets the source image by `-x` and `-y`
+- **AND** displays the slice name
+
+### Requirement: Slice data can be exported as JSON
+
+The workspace MUST provide a JSON export action next to the add-slice action. The exported JSON MUST include the current image name and all slice names and rectangles. The exported JSON MUST NOT include guide lines, selection state, or the current interaction mode.
+
+#### Scenario: Current slices are exported
+
+- **WHEN** an image is loaded
+- **AND** the user exports JSON
+- **THEN** the downloaded JSON includes `imageName`
+- **AND** each exported slice includes only `name`, `x`, `y`, `w`, and `h`
+- **AND** guide lines are omitted
+
+### Requirement: Workspace state can be temporarily saved
+
+The workspace MUST provide a save action that temporarily stores the current uploaded image and all slices in browser storage. Saved slice data MUST include `id`, `name`, `x`, `y`, `w`, and `h`. Saved workspace data MUST NOT include guide lines, selection state, or the current interaction mode.
+
+#### Scenario: The current workspace is saved
+
+- **WHEN** an image is loaded
+- **AND** the user saves the workspace
+- **THEN** the source image data is stored for later rendering
+- **AND** all slice names and rectangles are stored
+- **AND** guide lines are omitted
+
+#### Scenario: A saved workspace is restored
+
+- **WHEN** the app starts with a valid saved workspace
+- **THEN** the image metadata is restored
+- **AND** the slices are restored
+- **AND** the app uses `slice` mode
+- **AND** guide lines and selection are empty
 
 ### Requirement: New persistence or export behavior requires an explicit spec update
 

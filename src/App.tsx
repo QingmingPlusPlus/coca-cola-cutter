@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MainLayout } from "./components/layout/MainLayout";
 import { CanvasModule } from "./components/canvas/CanvasModule";
 import { ControlBar } from "./components/controls/ControlBar";
@@ -12,37 +12,70 @@ interface SelectedItem {
   id: string;
 }
 
+const WORKSPACE_STORAGE_KEY = "coca-cola-cutter-workspace";
+
+interface SavedWorkspace {
+  imageMeta: ImageMeta;
+  slices: Slice[];
+}
+
+const createSliceName = (index: number) => `slice-${index}`;
+
 function App() {
   const [imageMeta, setImageMeta] = useState<ImageMeta | null>(null);
   const [slices, setSlices] = useState<Slice[]>([]);
   const [mode, setMode] = useState<CanvasMode>("slice");
   const [guideLines, setGuideLines] = useState<GuideLine[]>([]);
   const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
+  const [saveStatus, setSaveStatus] = useState<string | null>(null);
 
-  const handleUpload = (file: File) => {
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => {
-      setImageMeta({
-        name: file.name,
-        width: img.width,
-        height: img.height,
-        size: file.size,
-        type: file.type,
-        url,
-      });
-      // Reset slices or keep them? Resetting seems safer for now.
-      setSlices([]);
+  useEffect(() => {
+    const savedWorkspace = localStorage.getItem(WORKSPACE_STORAGE_KEY);
+    if (!savedWorkspace) return;
+
+    try {
+      const parsed = JSON.parse(savedWorkspace) as SavedWorkspace;
+      if (!parsed.imageMeta || !Array.isArray(parsed.slices)) return;
+
+      setImageMeta(parsed.imageMeta);
+      setSlices(parsed.slices);
       setMode("slice");
       setGuideLines([]);
       setSelectedItem(null);
+    } catch {
+      localStorage.removeItem(WORKSPACE_STORAGE_KEY);
+    }
+  }, []);
+
+  const handleUpload = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const url = String(reader.result);
+      const img = new Image();
+      img.onload = () => {
+        setImageMeta({
+          name: file.name,
+          width: img.width,
+          height: img.height,
+          size: file.size,
+          type: file.type,
+          url,
+        });
+        setSlices([]);
+        setMode("slice");
+        setGuideLines([]);
+        setSelectedItem(null);
+        setSaveStatus(null);
+      };
+      img.src = url;
     };
-    img.src = url;
+    reader.readAsDataURL(file);
   };
 
   const handleAddSlice = () => {
     const newSlice: Slice = {
       id: crypto.randomUUID(),
+      name: createSliceName(slices.length + 1),
       x: 0,
       y: 0,
       w: 64, // Default size
@@ -55,19 +88,62 @@ function App() {
     setSlices(slices.filter((s) => s.id !== id));
   };
 
-  const handleUpdateSlice = (id: string, field: keyof Slice, value: number) => {
+  const handleUpdateSlice = (id: string, field: "x" | "y" | "w" | "h", value: number) => {
     setSlices(
       slices.map((s) => (s.id === id ? { ...s, [field]: value } : s))
+    );
+  };
+
+  const handleRenameSlice = (id: string, name: string) => {
+    setSlices(
+      slices.map((s) => (s.id === id ? { ...s, name } : s))
     );
   };
 
   const handleCanvasAddSlice = (rect: { x: number, y: number, w: number, h: number }) => {
     const newSlice: Slice = {
       id: crypto.randomUUID(),
+      name: createSliceName(slices.length + 1),
       ...rect
     };
     setSlices([...slices, newSlice]);
   }
+
+  const handleExportJson = () => {
+    const payload = {
+      imageName: imageMeta?.name ?? null,
+      slices: slices.map(({ name, x, y, w, h }) => ({ name, x, y, w, h })),
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const baseName = imageMeta?.name.replace(/\.[^/.]+$/, "") || "slices";
+    link.href = url;
+    link.download = `${baseName}-slices.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleSaveWorkspace = () => {
+    if (!imageMeta) {
+      setSaveStatus("No image to save");
+      return;
+    }
+
+    const workspace: SavedWorkspace = {
+      imageMeta,
+      slices: slices.map(({ id, name, x, y, w, h }) => ({ id, name, x, y, w, h })),
+    };
+
+    try {
+      localStorage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(workspace));
+      setSaveStatus("Saved");
+    } catch {
+      setSaveStatus("Save failed");
+    }
+  };
 
   const handleSetMode = (newMode: CanvasMode) => {
     setMode(newMode);
@@ -149,11 +225,21 @@ function App() {
         <>
           <SliceList
             slices={slices}
+            imageMeta={imageMeta}
             onAdd={handleAddSlice}
             onDelete={handleDeleteSlice}
             onUpdate={handleUpdateSlice}
+            onExport={handleExportJson}
+            onSave={handleSaveWorkspace}
+            saveStatus={saveStatus}
           />
-          <PreviewGallery slices={slices} imageMeta={imageMeta} mode={mode} selectedItem={selectedItem} />
+          <PreviewGallery
+            slices={slices}
+            imageMeta={imageMeta}
+            mode={mode}
+            selectedItem={selectedItem}
+            onRename={handleRenameSlice}
+          />
         </>
       }
     />

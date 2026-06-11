@@ -13,8 +13,8 @@ const mockImageMeta: ImageMeta = {
 };
 
 const mockSlices: Slice[] = [
-  { id: '1', x: 100, y: 100, w: 200, h: 150 },
-  { id: '2', x: 400, y: 300, w: 100, h: 100 },
+  { id: '1', name: 'slice-1', x: 100, y: 100, w: 200, h: 150 },
+  { id: '2', name: 'slice-2', x: 400, y: 300, w: 100, h: 100 },
 ];
 
 describe('CanvasModule', () => {

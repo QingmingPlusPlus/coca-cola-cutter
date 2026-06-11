@@ -1,23 +1,57 @@
-import { Slice } from "../../types";
+import { ImageMeta, Slice } from "../../types";
 
 interface SliceListProps {
     slices: Slice[];
+    imageMeta: ImageMeta | null;
     onAdd: () => void;
     onDelete: (id: string) => void;
-    onUpdate: (id: string, field: keyof Slice, value: number) => void;
+    onUpdate: (id: string, field: "x" | "y" | "w" | "h", value: number) => void;
+    onExport: () => void;
+    onSave: () => void;
+    saveStatus?: string | null;
 }
 
-export function SliceList({ slices, onAdd, onDelete, onUpdate }: SliceListProps) {
+export function SliceList({
+    slices,
+    imageMeta,
+    onAdd,
+    onDelete,
+    onUpdate,
+    onExport,
+    onSave,
+    saveStatus,
+}: SliceListProps) {
     return (
         <div className="h-1/2 border-b border-border flex flex-col bg-background">
-            <div className="p-4 border-b border-border flex justify-between items-center bg-muted/40">
+            <div className="p-4 border-b border-border flex justify-between items-center gap-3 bg-muted/40">
                 <h2 className="font-semibold text-sm">Slices ({slices.length})</h2>
-                <button
-                    onClick={onAdd}
-                    className="text-xs bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded"
-                >
-                    + Add Slice
-                </button>
+                <div className="flex items-center gap-2">
+                    {saveStatus && (
+                        <span className="text-[10px] text-muted-foreground">
+                            {saveStatus}
+                        </span>
+                    )}
+                    <button
+                        onClick={onSave}
+                        disabled={!imageMeta}
+                        className="text-xs bg-slate-700 hover:bg-slate-800 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed text-white px-2 py-1 rounded"
+                    >
+                        Save
+                    </button>
+                    <button
+                        onClick={onExport}
+                        disabled={!imageMeta}
+                        className="text-xs bg-blue-600 hover:bg-blue-700 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed text-white px-2 py-1 rounded"
+                    >
+                        Export JSON
+                    </button>
+                    <button
+                        onClick={onAdd}
+                        className="text-xs bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded"
+                    >
+                        + Add Slice
+                    </button>
+                </div>
             </div>
             <div className="flex-1 overflow-auto p-2 space-y-2">
                 {slices.map((slice, index) => (
