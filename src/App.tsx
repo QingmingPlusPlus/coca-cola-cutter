@@ -4,11 +4,15 @@ import { CanvasModule } from "./components/canvas/CanvasModule";
 import { ControlBar } from "./components/controls/ControlBar";
 import { SliceList } from "./components/editor/SliceList";
 import { PreviewGallery } from "./components/preview/PreviewGallery";
-import { ImageMeta, Slice } from "./types";
+import { ImageMeta, Slice, CanvasMode, GuideLine } from "./types";
+import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 
 function App() {
   const [imageMeta, setImageMeta] = useState<ImageMeta | null>(null);
   const [slices, setSlices] = useState<Slice[]>([]);
+  const [mode, setMode] = useState<CanvasMode>("slice");
+  const [guideLines, setGuideLines] = useState<GuideLine[]>([]);
+  const [selectedGuideId, setSelectedGuideId] = useState<string | null>(null);
 
   const handleUpload = (file: File) => {
     const url = URL.createObjectURL(file);
@@ -24,6 +28,9 @@ function App() {
       });
       // Reset slices or keep them? Resetting seems safer for now.
       setSlices([]);
+      setMode("slice");
+      setGuideLines([]);
+      setSelectedGuideId(null);
     };
     img.src = url;
   };
@@ -57,12 +64,64 @@ function App() {
     setSlices([...slices, newSlice]);
   }
 
+  const handleSetMode = (newMode: CanvasMode) => {
+    setMode(newMode);
+    if (newMode === "slice") {
+      setSelectedGuideId(null);
+    }
+  };
+
+  const handleAddGuideLine = (guideLine: { orientation: "vertical" | "horizontal"; position: number }) => {
+    const newGuide: GuideLine = {
+      id: crypto.randomUUID(),
+      orientation: guideLine.orientation,
+      position: guideLine.position,
+    };
+    setGuideLines([...guideLines, newGuide]);
+  };
+
+  const handleDeleteGuideLine = (id: string) => {
+    setGuideLines(guideLines.filter((g) => g.id !== id));
+    setSelectedGuideId(null);
+  };
+
+  const handleClearGuideLines = () => {
+    setGuideLines([]);
+    setSelectedGuideId(null);
+  };
+
+  const handleSelectGuideLine = (id: string | null) => {
+    setSelectedGuideId(id);
+  };
+
+  useKeyboardShortcuts({
+    onSetMode: handleSetMode,
+    onDeleteSelected: () => {
+      if (selectedGuideId) {
+        handleDeleteGuideLine(selectedGuideId);
+      }
+    },
+    currentMode: mode,
+    selectedGuideId: selectedGuideId,
+  });
+
   return (
     <MainLayout
       leftPanel={
         <>
-          <CanvasModule imageMeta={imageMeta} slices={slices} onAddSlice={handleCanvasAddSlice} />
-          <ControlBar imageMeta={imageMeta} onUpload={handleUpload} />
+          <CanvasModule
+            imageMeta={imageMeta}
+            slices={slices}
+            mode={mode}
+            guideLines={guideLines}
+            selectedGuideId={selectedGuideId}
+            onAddSlice={handleCanvasAddSlice}
+            onAddGuideLine={handleAddGuideLine}
+            onDeleteGuideLine={handleDeleteGuideLine}
+            onSelectGuideLine={handleSelectGuideLine}
+            onClearGuideLines={handleClearGuideLines}
+          />
+          <ControlBar imageMeta={imageMeta} onUpload={handleUpload} mode={mode} guideLines={guideLines} onClearGuideLines={handleClearGuideLines} />
         </>
       }
       rightPanel={

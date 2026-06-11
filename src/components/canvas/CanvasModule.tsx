@@ -1,18 +1,37 @@
 import React from "react";
-import { Slice, ImageMeta } from "../../types";
+import { Slice, ImageMeta, CanvasMode, GuideLine } from "../../types";
 
 interface CanvasModuleProps {
     imageMeta: ImageMeta | null;
     slices: Slice[];
+    mode?: CanvasMode;
+    guideLines?: GuideLine[];
+    selectedGuideId?: string | null;
     onAddSlice?: (rect: { x: number, y: number, w: number, h: number }) => void;
+    onAddGuideLine?: (guideLine: { orientation: 'vertical' | 'horizontal'; position: number }) => void;
+    onDeleteGuideLine?: (id: string) => void;
+    onSelectGuideLine?: (id: string | null) => void;
+    onClearGuideLines?: () => void;
 }
 
-export function CanvasModule({ imageMeta, slices, onAddSlice }: CanvasModuleProps) {
+export function CanvasModule({
+    imageMeta,
+    slices,
+    mode = 'slice',
+    guideLines = [],
+    selectedGuideId = null,
+    onAddSlice,
+    onAddGuideLine,
+    onSelectGuideLine,
+}: CanvasModuleProps) {
     const [isDrawing, setIsDrawing] = React.useState(false);
     const [startPos, setStartPos] = React.useState<{ x: number, y: number } | null>(null);
     const [currentPos, setCurrentPos] = React.useState<{ x: number, y: number } | null>(null);
+    const [guidePreviewPos, setGuidePreviewPos] = React.useState<{ x: number, y: number } | null>(null);
 
     const containerRef = React.useRef<HTMLDivElement>(null);
+
+    const isGuideMode = mode === 'verticalGuide' || mode === 'horizontalGuide';
 
     const getRelativeCoords = (e: React.MouseEvent) => {
         if (!containerRef.current) return { x: 0, y: 0 };
@@ -27,40 +46,68 @@ export function CanvasModule({ imageMeta, slices, onAddSlice }: CanvasModuleProp
     };
 
     const handleMouseDown = (e: React.MouseEvent) => {
-        if (!imageMeta || !onAddSlice) return;
-        // Prevent drawing if clicking on an existing slice (optional, maybe we want to select it?)
-        // For now, simple drawing.
-        e.preventDefault(); // Prevent image drag
-        const coords = getRelativeCoords(e);
-        setIsDrawing(true);
-        setStartPos(coords);
-        setCurrentPos(coords);
+        if (!imageMeta) return;
+
+        if (mode === 'slice') {
+            if (!onAddSlice) return;
+            e.preventDefault();
+            const coords = getRelativeCoords(e);
+            setIsDrawing(true);
+            setStartPos(coords);
+            setCurrentPos(coords);
+        } else if (mode === 'verticalGuide' || mode === 'horizontalGuide') {
+            if (!onAddGuideLine) return;
+            const coords = getRelativeCoords(e);
+            const position = mode === 'verticalGuide' ? Math.round(coords.x) : Math.round(coords.y);
+            onAddGuideLine({
+                orientation: mode === 'verticalGuide' ? 'vertical' : 'horizontal',
+                position,
+            });
+        }
     };
 
     const handleMouseMove = (e: React.MouseEvent) => {
-        if (!isDrawing) return;
-        setCurrentPos(getRelativeCoords(e));
+        if (mode === 'slice') {
+            if (!isDrawing) return;
+            setCurrentPos(getRelativeCoords(e));
+        } else if (mode === 'verticalGuide' || mode === 'horizontalGuide') {
+            setGuidePreviewPos(getRelativeCoords(e));
+        }
     };
 
     const handleMouseUp = () => {
-        if (!isDrawing || !startPos || !currentPos || !onAddSlice) return;
-        setIsDrawing(false);
+        if (mode === 'slice') {
+            if (!isDrawing || !startPos || !currentPos || !onAddSlice) return;
+            setIsDrawing(false);
 
-        const x = Math.min(startPos.x, currentPos.x);
-        const y = Math.min(startPos.y, currentPos.y);
-        const w = Math.abs(currentPos.x - startPos.x);
-        const h = Math.abs(currentPos.y - startPos.y);
+            const x = Math.min(startPos.x, currentPos.x);
+            const y = Math.min(startPos.y, currentPos.y);
+            const w = Math.abs(currentPos.x - startPos.x);
+            const h = Math.abs(currentPos.y - startPos.y);
 
-        if (w > 2 && h > 2) { // Minimal threshold
-            onAddSlice({
-                x: Math.round(x),
-                y: Math.round(y),
-                w: Math.round(w),
-                h: Math.round(h)
-            });
+            if (w > 2 && h > 2) {
+                onAddSlice({
+                    x: Math.round(x),
+                    y: Math.round(y),
+                    w: Math.round(w),
+                    h: Math.round(h)
+                });
+            }
+            setStartPos(null);
+            setCurrentPos(null);
         }
-        setStartPos(null);
-        setCurrentPos(null);
+    };
+
+    const handleMouseLeave = () => {
+        if (mode === 'slice') {
+            if (isDrawing) {
+                setIsDrawing(false);
+                setStartPos(null);
+                setCurrentPos(null);
+            }
+        } else {
+            setGuidePreviewPos(null);
+        }
     };
 
     // Calculate drawing rect
@@ -71,24 +118,68 @@ export function CanvasModule({ imageMeta, slices, onAddSlice }: CanvasModuleProp
         h: Math.abs(currentPos.y - startPos.y),
     } : null;
 
+    // Cursor class based on mode
+    const cursorClass = mode === 'slice'
+        ? 'cursor-crosshair'
+        : mode === 'verticalGuide'
+        ? 'cursor-col-resize'
+        : 'cursor-row-resize';
+
     return (
-        <div className="flex-1 overflow-auto bg-checkerboard relative flex items-center justify-center select-none">
-            {/* Checkerboard pattern simulation with Tailwind for now if svg missing, or just a gray background placeholder */}
+        <div className="flex-1 overflow-auto bg-checkerboard relative flex items-start justify-start select-none">
             {imageMeta ? (
-<div
+                <div
                     data-testid="canvas-container"
                     ref={containerRef}
-                    className="relative shadow-lg cursor-crosshair"
+                    className={`relative shadow-lg ${cursorClass}`}
                     onMouseDown={handleMouseDown}
                     onMouseMove={handleMouseMove}
                     onMouseUp={handleMouseUp}
-                    onMouseLeave={() => isDrawing && setIsDrawing(false)}
+                    onMouseLeave={handleMouseLeave}
+                    onClick={() => {
+                        if (isGuideMode && onSelectGuideLine) {
+                            onSelectGuideLine(null);
+                        }
+                    }}
                 >
                     {/* Image */}
                     <img src={imageMeta.url} alt="Source" className="max-w-none pointer-events-none display-block" />
 
+                    {/* Guide Lines Overlay */}
+                    {guideLines.map((line) => (
+                        <div
+                            data-testid={`guide-line-${line.id}`}
+                            key={line.id}
+                            className={`absolute ${isGuideMode ? 'pointer-events-auto' : 'pointer-events-none'}`}
+                            style={{
+                                left: line.orientation === 'vertical' ? line.position : 0,
+                                top: line.orientation === 'horizontal' ? line.position : 0,
+                                width: line.orientation === 'vertical' ? (selectedGuideId === line.id ? 3 : 1) : '100%',
+                                height: line.orientation === 'horizontal' ? (selectedGuideId === line.id ? 3 : 1) : '100%',
+                                backgroundColor: selectedGuideId === line.id
+                                    ? 'rgba(0, 255, 230, 1.0)'
+                                    : 'rgba(0, 200, 180, 0.8)',
+                                cursor: isGuideMode ? 'pointer' : undefined,
+                            }}
+                            onClick={(e) => {
+                                if (isGuideMode && onSelectGuideLine) {
+                                    e.stopPropagation();
+                                    onSelectGuideLine(line.id);
+                                }
+                            }}
+                        >
+                            <span
+                                className={`absolute text-xs font-mono text-cyan-400 bg-black/70 px-1 py-0.5 rounded pointer-events-none whitespace-nowrap ${
+                                    line.orientation === 'vertical' ? 'top-0 left-1' : 'top-0 left-0 -translate-y-full'
+                                }`}
+                            >
+                                {line.orientation === 'vertical' ? `X: ${line.position}` : `Y: ${line.position}`}
+                            </span>
+                        </div>
+                    ))}
+
                     {/* Slices Overlay */}
-{slices.map((slice) => (
+                    {slices.map((slice) => (
                         <div
                             data-testid={`slice-${slice.id}`}
                             key={slice.id}
@@ -111,6 +202,21 @@ export function CanvasModule({ imageMeta, slices, onAddSlice }: CanvasModuleProp
                                 top: drawingRect.y,
                                 width: drawingRect.w,
                                 height: drawingRect.h,
+                            }}
+                        />
+                    )}
+
+                    {/* Guide Preview Line */}
+                    {guidePreviewPos && mode !== 'slice' && (
+                        <div
+                            data-testid="guide-preview"
+                            className="absolute pointer-events-none"
+                            style={{
+                                left: mode === 'verticalGuide' ? guidePreviewPos.x : 0,
+                                top: mode === 'horizontalGuide' ? guidePreviewPos.y : 0,
+                                width: mode === 'verticalGuide' ? 1 : '100%',
+                                height: mode === 'horizontalGuide' ? 1 : '100%',
+                                backgroundColor: 'rgba(0, 200, 180, 0.4)',
                             }}
                         />
                     )}

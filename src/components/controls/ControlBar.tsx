@@ -1,12 +1,20 @@
 import React from "react";
-import { ImageMeta } from "../../types";
+import { ImageMeta, CanvasMode, GuideLine } from "../../types";
 
 interface ControlBarProps {
     imageMeta: ImageMeta | null;
     onUpload: (file: File) => void;
+    mode: CanvasMode;
+    guideLines: GuideLine[];
+    onClearGuideLines: () => void;
 }
 
-export function ControlBar({ imageMeta, onUpload }: ControlBarProps) {
+const MODE_LABELS: Record<Exclude<CanvasMode, "slice">, string> = {
+    verticalGuide: "Vertical Guide",
+    horizontalGuide: "Horizontal Guide",
+};
+
+export function ControlBar({ imageMeta, onUpload, mode, guideLines, onClearGuideLines }: ControlBarProps) {
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             onUpload(e.target.files[0]);
@@ -26,6 +34,21 @@ export function ControlBar({ imageMeta, onUpload }: ControlBarProps) {
                     Upload Image
                 </button>
             </div>
+
+            {mode !== "slice" && (
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                    {MODE_LABELS[mode]}
+                </span>
+            )}
+
+            {guideLines.length > 0 && (
+                <button
+                    onClick={onClearGuideLines}
+                    className="bg-red-600/80 hover:bg-red-600 text-white px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
+                >
+                    Clear Guides
+                </button>
+            )}
 
             {imageMeta ? (
                 <div className="flex space-x-6 text-sm text-foreground">

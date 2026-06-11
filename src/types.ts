@@ -14,3 +14,11 @@ export interface ImageMeta {
     type: string;
     url: string;
 }
+
+export type CanvasMode = 'slice' | 'verticalGuide' | 'horizontalGuide';
+
+export interface GuideLine {
+    id: string;
+    orientation: 'vertical' | 'horizontal';
+    position: number;
+}
