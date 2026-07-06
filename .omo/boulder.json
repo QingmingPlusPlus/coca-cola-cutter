@@ -1,0 +1,23 @@
+{
+  "active_plan": "D:\\workspace\\coca-cola-cutter\\.sisyphus\\plans\\guide-line-mode.md",
+  "started_at": "2026-06-11T07:15:05.781Z",
+  "session_ids": [
+    "ses_14aaa5675ffeMkqeW5f6P9IlQK"
+  ],
+  "session_origins": {
+    "ses_14aaa5675ffeMkqeW5f6P9IlQK": "direct"
+  },
+  "plan_name": "guide-line-mode",
+  "agent": "atlas",
+  "task_sessions": {
+    "todo:1": {
+      "task_key": "todo:1",
+      "task_label": "1",
+      "task_title": "Type Definitions + State Scaffold",
+      "session_id": "ses_14a6e70bcffeyzVZb2IyUw5BLB",
+      "agent": "Sisyphus-Junior",
+      "category": "visual-engineering",
+      "updated_at": "2026-06-11T07:25:19.968Z"
+    }
+  }
+}
