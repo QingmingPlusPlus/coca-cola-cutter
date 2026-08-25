@@ -6,6 +6,7 @@ interface SliceListProps {
     onAdd: () => void;
     onDelete: (id: string) => void;
     onUpdate: (id: string, field: "x" | "y" | "w" | "h", value: number) => void;
+    onRename: (id: string, name: string) => void;
     onExport: () => void;
     onSave: () => void;
     saveStatus?: string | null;
@@ -17,6 +18,7 @@ export function SliceList({
     onAdd,
     onDelete,
     onUpdate,
+    onRename,
     onExport,
     onSave,
     saveStatus,
@@ -60,11 +62,21 @@ export function SliceList({
                             #{index + 1}
                         </div>
 
-                        <div className="grid grid-cols-4 gap-2">
-                            <InputGroup label="X" value={slice.x} onChange={(v) => onUpdate(slice.id, 'x', v)} />
-                            <InputGroup label="Y" value={slice.y} onChange={(v) => onUpdate(slice.id, 'y', v)} />
-                            <InputGroup label="W" value={slice.w} onChange={(v) => onUpdate(slice.id, 'w', v)} />
-                            <InputGroup label="H" value={slice.h} onChange={(v) => onUpdate(slice.id, 'h', v)} />
+                        <div className="min-w-0 space-y-2">
+                            <input
+                                type="text"
+                                value={slice.name}
+                                onChange={(e) => onRename(slice.id, e.target.value)}
+                                aria-label={`Slice ${index + 1} name`}
+                                title={slice.name}
+                                className="w-full min-w-0 bg-transparent border-b border-border focus:border-primary outline-none py-0 text-xs font-mono truncate"
+                            />
+                            <div className="grid grid-cols-4 gap-2">
+                                <InputGroup label="X" value={slice.x} onChange={(v) => onUpdate(slice.id, 'x', v)} />
+                                <InputGroup label="Y" value={slice.y} onChange={(v) => onUpdate(slice.id, 'y', v)} />
+                                <InputGroup label="W" value={slice.w} onChange={(v) => onUpdate(slice.id, 'w', v)} />
+                                <InputGroup label="H" value={slice.h} onChange={(v) => onUpdate(slice.id, 'h', v)} />
+                            </div>
                         </div>
 
                         <button

@@ -229,6 +229,7 @@ function App() {
             onAdd={handleAddSlice}
             onDelete={handleDeleteSlice}
             onUpdate={handleUpdateSlice}
+            onRename={handleRenameSlice}
             onExport={handleExportJson}
             onSave={handleSaveWorkspace}
             saveStatus={saveStatus}

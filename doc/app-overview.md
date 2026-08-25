@@ -29,7 +29,7 @@ coca-cola-cutter 当前是纯前端单页工具，没有后端或多图片工作
 | `src/components/layout/MainLayout.tsx` | 固定全屏双栏布局，左侧画布+控制栏，右侧切片列表+预览 |
 | `src/components/canvas/CanvasModule.tsx` | 根据当前模式处理鼠标事件、坐标换算、绘制切片覆盖层、辅助线和拖拽 |
 | `src/components/controls/ControlBar.tsx` | 文件上传入口、图片元信息、当前非切片模式提示、清空辅助线按钮 |
-| `src/components/editor/SliceList.tsx` | 切片数量、保存、导出、手动新增、删除、编辑 `x/y/w/h` |
+| `src/components/editor/SliceList.tsx` | 切片数量、名称、保存、导出、手动新增、删除、编辑 `x/y/w/h`；名称与预览区实时同步 |
 | `src/components/preview/PreviewGallery.tsx` | 用 `background-position` 从原图显示切片预览，展示并编辑切片名称，并展示快捷键提示 |
 | `src/hooks/useKeyboardShortcuts.ts` | 全局模式快捷键和删除选中项；输入框聚焦时跳过 |
 | `src/components/image-monitor/*` | 独立图片查看/拖放上传原型，当前未接入 `App.tsx` |
@@ -55,7 +55,7 @@ coca-cola-cutter 当前是纯前端单页工具，没有后端或多图片工作
 
 ### 预览
 
-`PreviewGallery` 遍历 `slices`，以切片宽高作为容器尺寸，用上传图片作为背景图，并通过负的 `x/y` 偏移显示对应局部。每个预览图下方显示切片名称，可通过编辑按钮进入重命名输入框。当前预览容器最大尺寸限制为 `150px`，大切片缩放策略仍是待完善项。
+`PreviewGallery` 遍历 `slices`，以切片宽高作为容器尺寸，用上传图片作为背景图，并通过负的 `x/y` 偏移显示对应局部。每个预览图下方显示切片名称，可通过编辑按钮进入重命名输入框。`SliceList` 每行同样显示并可直接编辑切片名称；名称状态集中在 `App.tsx`，任一处改名后两处同步显示。当前预览容器最大尺寸限制为 `150px`，大切片缩放策略仍是待完善项。
 
 ### 导出 JSON
 

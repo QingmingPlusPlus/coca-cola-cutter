@@ -37,7 +37,7 @@ Slice and guide-line coordinates MUST be represented in source-image pixel coord
 
 ### Requirement: Slices are named editable rectangles
 
-Each slice MUST have a stable `id`, a user-editable `name`, `x`, `y`, `w`, and `h`. Users MUST be able to add a default slice, delete a slice, edit numeric slice fields from the slice list, and rename a slice from the preview gallery.
+Each slice MUST have a stable `id`, a user-editable `name`, `x`, `y`, `w`, and `h`. Users MUST be able to add a default slice, delete a slice, edit numeric slice fields from the slice list, and rename a slice from the slice list and from the preview gallery. The slice list and the preview gallery MUST both display the current slice name, so a rename in either place is reflected in both.
 
 #### Scenario: A default slice is added
 
@@ -57,6 +57,12 @@ Each slice MUST have a stable `id`, a user-editable `name`, `x`, `y`, `w`, and `
 - **AND** enters a new slice name
 - **THEN** that slice name is updated
 - **AND** the slice coordinates and dimensions are preserved
+
+#### Scenario: A renamed slice stays in sync across panels
+
+- **WHEN** a slice name changes in the preview gallery or the slice list
+- **THEN** the slice list row shows the updated name
+- **AND** the preview gallery item shows the updated name
 
 ### Requirement: Guide lines support vertical and horizontal alignment
 
@@ -112,9 +118,7 @@ Global keyboard shortcuts MUST be ignored while an `INPUT` or `TEXTAREA` element
 
 ### Requirement: Preview uses the same source image and slice coordinates
 
-The preview gallery MUST render one preview per slice using the uploaded image as the source and the slice rectangle as the visible region. The preview gallery MUST show the slice name below each preview.
-
-#### Scenario: Slices exist after image upload
+The preview gallery MUST render one preview per slice using the uploaded image as the source and the slice rectangle as the visible region. The preview gallery MUST show the slice name below each preview.#### Scenario: Slices exist after image upload
 
 - **WHEN** a slice has `x`, `y`, `w`, and `h`
 - **THEN** the preview item uses `w/h` for its visible frame
